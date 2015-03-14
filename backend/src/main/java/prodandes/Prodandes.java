@@ -141,6 +141,10 @@ public class Prodandes {
         cerrarConexion();
     }
 
+    //-------------------------------------------------------
+    // Métodos para ensayar otros métodos
+    //-------------------------------------------------------
+    
     @POST
     @Path("/reservarProducto")
     public void reservarProductoREST(List lista) throws Exception{
