@@ -880,5 +880,205 @@ public class Prodandes {
 
         cerrarConexion();
     }
-
+    
+    public void registrarProveedor(JSONObject proveedor) throws Exception {
+            int doc = Integer.parseInt(proveedor.get(0).toString());
+            String nombre = proveedor.get(1).toString();
+            String ciudad = proveedor.get(2).toString();
+            String direccion = proveedor.get(3).toString();
+            String telefono = proveedor.get(4).toString();
+            int volumenMax = Integer.parseInt(proveedor.get(5).toString());
+            int tiempoResp = Integer.parseInt(proveedor.get(6).toString());
+            String representante = proveedor.get(7).toString();
+            String sql = "select max (id) as MAXIMO from PROVEEDOR";
+            Statement st = con.createStatement();
+            ResultSet rs = st.executeQuery(sql);
+            st.close();
+            int id_item = -1;
+            if (rs.next()) {
+                id_item = rs.getInt("MAXIMO") + 1;}
+            sql = "INSERT INTO PROVEEDOR (DOCUMENTO_ID,NOMBRE,CIUDAD,DIRECCION,TELEFONO,VOLUMEN_MAXIMO,TIEMPO_ENTREGA,REPRESENTANTE_LEGAL)"+" VALUES (" + doc + ",'" + nombre + "','" + ciudad + "','" + direccion + "','" + telefono + "'," + volumenMax + "," + tiempoResp + ",'" + representante + "')";
+            Statement st2 = con.createStatement();
+            st2.executeUpdate(sql);
+            st2.close();
+            st2.close();
+            cerrarConexion();
+        }
+    
+    @POST
+    @Path("/registrarLlegadaDeMaterial") 
+    public void registrarLlegadaDeMaterial(JSONObject idPedidoMateriaPrimaP) throws Exception
+    {
+        int idPedidoMateriaPrima = Integer.parseInt(idPedidoMateriaPrimaP.get("id").toString());
+        System.out.println("Entrada parÃ¡metro registrarLlegadaDeMaterial");
+        System.out.println(idPedidoMateriaPrima);
+        Calendar c = new GregorianCalendar();
+            String fecha = c.get(GregorianCalendar.DAY_OF_MONTH) + "-"
+                    + c.get(GregorianCalendar.MONTH) + "-" + c.get(GregorianCalendar.YEAR);
+        String query = "update PEDIDO_MATERIA_PRIMA set FECHA_ENTREGA = TO_DATE ('" + fecha + "','DD-MM-YYYY') WHERE ID = "+idPedidoMateriaPrima;
+        Statement st = con.createStatement();
+        st.executeQuery(query);
+        st.close();
+        query = "update ITEM_MATERIA_PRIMA set ESTADO = 'En bodega' WHERE ID_PEDIDO ="+idPedidoMateriaPrima;
+        st = con.createStatement();
+        st.executeQuery(query);
+        st.close();
+        cerrarConexion();
+    }
+    
+    @POST
+    @Path("/registrarLlegadaDeComponentes") 
+    public void registrarLlegadaDeComponentes(JSONObject idPedidoComponenteP) throws Exception
+    {
+        int idPedidoComponente = Integer.parseInt(idPedidoComponenteP.get("id").toString());
+        System.out.println("Entrada parÃ¡metro registrarLlegadaDeMaterial");
+        System.out.println(idPedidoComponente);
+        Calendar c = new GregorianCalendar();
+            String fecha = c.get(GregorianCalendar.DAY_OF_MONTH) + "-"
+                    + c.get(GregorianCalendar.MONTH) + "-" + c.get(GregorianCalendar.YEAR);
+        String query = "update PEDIDO_COMPONENTE set FECHA_ENTREGA = TO_DATE ('" + fecha + "','DD-MM-YYYY') WHERE ID = "+idPedidoComponente;
+        Statement st = con.createStatement();
+        st.executeQuery(query);
+        st.close();
+        query = "update ITEM_COMPONENTE set ESTADO = 'En bodega' WHERE ID_PEDIDO ="+idPedidoComponente;
+        st = con.createStatement();
+        st.executeQuery(query);
+        st.close();
+        cerrarConexion();
+    }
+    
+    @POST
+    @Path("/registrarEjecucionEtapa")
+    public JSONObject registrarEjecucionEtapa(JSONObject num_secuenciaP) throws Exception {
+        int num_secuencia = Integer.parseInt(num_secuenciaP.get("secuencia").toString());
+        //Verificar productos
+        System.out.println("Entrada parÃ¡metro registrarEjecucionEtapa");
+        System.out.println(num_secuencia);
+        int numProductosDisponibles = verificarProductosEstacionAnterior(num_secuencia);
+        if(numProductosDisponibles == 0)
+        {   
+            JSONObject jRespuesta = new JSONObject();
+            jRespuesta.put("Respuesta", "Numero de productos no disponibles");
+            return jRespuesta;
+        }
+        //Verificar items
+        String query = "select * from (select * from (ITEM_MATERIA_PRIMA_ETAPA left outer join (select MATERIA, count(ID) as cuenta from MATERIA_PRIMA_ITEM group by MATERIA) on MATERIA_PRIMA = MATERIA) where NUMERO_SECUENCIA='"+num_secuencia+"') where CANTIDAD > cuenta";
+        Statement st = con.createStatement();
+        ResultSet rs = st.executeQuery(query);
+        if(rs.next()) {
+            
+            JSONObject jRespuesta = new JSONObject();
+            jRespuesta.put("Respuesta", "Cantidad de materia prima insuficiente");
+            return jRespuesta;
+        }
+        st.close();
+        
+        String query1 = "select * from (select * from (ITEM_COMPONENTE_ETAPA left outer join (select COMPONENTE, count(ID) as cuenta from COMPONENTE_ITEM group by COMPONENTE) on COMPONENTE = COMPONENTE_NOMBRE) where NUMERO_SECUENCIA='"+num_secuencia+"') where CANTIDAD > cuenta";
+        Statement st1 = con.createStatement();
+        ResultSet rs1 = st1.executeQuery(query1);
+        if(rs1.next()) {
+            
+            JSONObject jRespuesta = new JSONObject();
+            jRespuesta.put("Respuesta", "Cantidad de producto insuficiente");
+            return jRespuesta;
+        }
+        st1.close();
+        //Subir productos en etapas
+        String query2 = "update item set ETAPA = ETAPA+1 where ETAPA = "+num_secuencia;
+        Statement st2 = con.createStatement();
+        st2.executeQuery(query2); 
+        st2.close();
+        //Reducir suministros MATERIA PRIMA
+        String query3 = "select * from ITEM_MATERIA_PRIMA_ETAPA where NUMERO_SECUENCIA = "+num_secuencia;
+        Statement st3 = con.createStatement();
+        ResultSet rs3 = st3.executeQuery(query3);
+        ArrayList<String> lista1 = new ArrayList();
+        ArrayList<Integer> lista2 = new ArrayList();
+        while(rs3.next()) {
+            lista1.add(rs3.getString("MATERIA_PRIMA_NOMBRE"));
+            lista2.add(rs3.getInt("CANTIDAD"));
+        }
+        st3.close();
+        String query4;
+        Statement st4;
+        ResultSet rs4;
+        for(int i=0;i<lista1.size();i++)
+        {
+            for(int j=0;j<lista2.get(i);j++)
+            {
+            query4 = "DELETE FROM MATERIA_PRIMA_ITEM where ID = (select min(ID) from MATERIA_PRIMA_ITEM where MATERIA = '"+lista1.get(i)+"')";
+            st4 = con.createStatement();
+            rs4 = st4.executeQuery(query4);
+            st4.close();
+            }
+        }
+        //Reducir suministros COMPONENTE
+        query3 = "select * from ITEM_COMPONENTE_ETAPA where NUMERO_SECUENCIA = "+num_secuencia;
+        st3 = con.createStatement();
+        rs3 = st3.executeQuery(query3);
+        lista1 = new ArrayList();
+        lista2 = new ArrayList();
+        while(rs3.next()) {
+            lista1.add(rs3.getString("COMPONENTE_NOMBRE"));
+            lista2.add(rs3.getInt("CANTIDAD"));
+        }
+        st3.close();
+        for(int i=0;i<lista1.size();i++)
+        {
+            for(int j=0;j<lista2.get(i);j++)
+            {
+            query4 = "DELETE FROM COMPONENTE_ITEM where ID = (select min(ID) from COMPONENTE_ITEM where COMPONENTE = '"+lista1.get(i)+"')";
+            st4 = con.createStatement();
+            rs4 = st4.executeQuery(query4);
+            st4.close();
+            }
+        }
+        cerrarConexion();
+        
+            JSONObject jRespuesta = new JSONObject();
+            jRespuesta.put("Respuesta", "Operacion correcta");
+        return jRespuesta;
+    }
+    
+    @POST
+    @Path("/verificarProductosEstacionAnterior")
+    public int verificarProductosEstacionAnterior(int numSecuencia) throws Exception {
+        //Dar etapa y producto del num_secuencia
+        String query3 = "select etapa, nombre_producto from ETAPA_DE_PRODUCCION where NUMERO_SECUENCIA = "+numSecuencia;
+        Statement st3 = con.createStatement();
+        ResultSet rs3 = st3.executeQuery(query3);
+        int resp3 = 0;
+        String resp4 = "";
+        if (rs3.next()) {
+            resp3 = rs3.getInt("etapa");
+            resp4 = rs3.getString("nombre_producto");
+        }
+        int etapa = resp3;
+        int etapaAnterior = etapa - 1;
+        String producto = resp4;
+        st3.close();
+        //Dar id de la etapa anterior
+        String query4 = "select NUMERO_SECUENCIA from ETAPA_DE_PRODUCCION where ETAPA= "+etapaAnterior+" AND "+"NOMBRE_PRODUCTO ='"+producto+"'";
+        Statement st4 = con.createStatement();
+        ResultSet rs4 = st4.executeQuery(query4);
+        int resp5 = 0;
+        if (rs4.next()) {
+            resp5 = rs4.getInt("NUMERO_SECUENCIA");
+        }
+        st4.close();
+        int numSecAnterior = resp5;
+        //Dar numero de items en etapa anterior
+        String query5 = "select count(*) as cuenta from ITEM where ETAPA= "+numSecAnterior;
+        Statement st5 = con.createStatement();
+        ResultSet rs5 = st5.executeQuery(query5);
+        int resp6 = 0;
+        if (rs5.next()) {
+            resp6 = rs5.getInt("cuenta");
+        }
+        st5.close();
+        //FIN
+        System.out.println("Return verificarProductosEstacionAnterior: " + resp6);
+        cerrarConexion();
+        return resp6;
+    }
 }
