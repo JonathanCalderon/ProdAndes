@@ -30,13 +30,13 @@ import javax.ws.rs.core.MediaType;
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 public class Ensayo {
-//
-//    @GET
-//    public Integer getTodosLosMuebles() {
-//        return 1;
-//
-//    }
-//
+
+    @GET
+    public Integer getTodosLosMuebles() {
+        return 1;
+
+    }
+
 //    @POST
 //    @Path("/metodo")
 //    public String metodo(List lista) {
@@ -65,33 +65,33 @@ public class Ensayo {
 //        System.out.println(c1.toString());
 //        return c1.getNombre();
 //    }
-//
-//    @GET
-//    @Path("/metodo3")
-//    public String metodo3() {
-//
-//        try {
-//            Connection con = null;
-//            Class.forName("oracle.jdbc.driver.OracleDriver");
-//            con = DriverManager.getConnection("jdbc:oracle:thin:@157.253.238.224:1531:prod", "ISIS2304271510", "rproxyquark");
-//            
-//            String sql = "select * from PRUEBA";
-//                //System.out.println(sql);
-//            Statement st = con.createStatement();
-//            
-//            ResultSet rs = st.executeQuery(sql);
-//            String resps = "";
-//            while (rs.next()){   
-//                
-//                resps+=rs.getString("COLUMN1")+" , "+rs.getString("COLUMN2")+"\n";
-//            }
-//            
-//            return resps;
-//            
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//        
-//        return "Error";
-//    }
+
+    @GET
+    @Path("/metodo3")
+    public String metodo3() {
+
+        try {
+            Connection con = null;
+            Class.forName("oracle.jdbc.driver.OracleDriver");
+            con = DriverManager.getConnection("jdbc:oracle:thin:@157.253.238.224:1531:prod", "ISIS2304271510", "rproxyquark");
+            
+            String sql = "select * from PRUEBA";
+                //System.out.println(sql);
+            Statement st = con.createStatement();
+            
+            ResultSet rs = st.executeQuery(sql);
+            String resps = "";
+            while (rs.next()){   
+                
+                resps+=rs.getString("COLUMN1")+" , "+rs.getString("COLUMN2")+"\n";
+            }
+            
+            return resps;
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        return "Error";
+    }
 }
