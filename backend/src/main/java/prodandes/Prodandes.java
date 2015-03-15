@@ -48,22 +48,19 @@ public class Prodandes {
     // -------------------------------------------------
     @POST
     @Path("/registrarPedido")
-    public String registrarPedido(List lista) throws Exception {
+    public JSONObject registrarPedido(JSONObject jO) throws Exception {
         try {
 
             String resp = "";
-            LinkedHashMap lProducto = (LinkedHashMap) lista.get(0);
-            LinkedHashMap lCliente = (LinkedHashMap) lista.get(1);
-            LinkedHashMap lCantidad = (LinkedHashMap) lista.get(2);
-            LinkedHashMap lFechaEsperada = (LinkedHashMap) lista.get(3);
+            
             abrirConexion();
-            String sFecha = lFechaEsperada.get("fechaEsperada").toString();
+            String sFecha = jO.get("fechaEsperada").toString();
 
             System.out.println("Fecha: " + sFecha);
 
-            String nombreProducto = lProducto.get("nombre").toString();
-            int cantidad = (int) lCantidad.get("cantidad");
-            int id_cliente = (int) lCliente.get("id_cliente");
+            String nombreProducto = jO.get("nombre").toString();
+            int cantidad = (int) jO.get("cantidad");
+            int id_cliente = (int) jO.get("id_cliente");
 
             Calendar c = new GregorianCalendar();
             String fechaSolicitud = c.get(GregorianCalendar.DAY_OF_MONTH) + "-"
@@ -204,11 +201,17 @@ public class Prodandes {
 
             }
             cerrarConexion();
-            return resp;
+            //return resp;
+            JSONObject jRespuesta = new JSONObject();
+            jRespuesta.put("Respuesta", resp);
+            return jRespuesta;
         } catch (Exception e) {
             e.printStackTrace();
             cerrarConexion();
-            return "error";
+            //return "error";
+            JSONObject jRespuesta = new JSONObject();
+            jRespuesta.put("Respuesta", "error");
+            return jRespuesta;
         }
     }
 
